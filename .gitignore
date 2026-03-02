@@ -6,7 +6,7 @@
 *.iss
 *.lib
 *.exe
-
+*.ico
 # 3. 忽略文件夹（末尾加/）
 .vs/
 installer/

@@ -1,4 +1,4 @@
-﻿#ifndef MAINWINDOW_H
+#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
@@ -7,8 +7,12 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QTextEdit>
+#include <QProgressBar>
+#include <QCheckBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QRegExp>
+#include <QTimer>
 
 class MainWindow : public QMainWindow
 {
@@ -33,8 +37,12 @@ private:
   QLineEdit* urlLineEdit;
   QPushButton* selectPathBtn;
   QLabel* pathLabel;
+  QCheckBox* audioOnlyCheckBox;
   QPushButton* downloadBtn;
   QTextEdit* logTextEdit;
+  QProgressBar* progressBar;
+  int currentProgress;
+  QTimer* progressTimer;
 };
 
 #endif // MAINWINDOW_H

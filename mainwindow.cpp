@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+ï»¿#include "mainwindow.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTextCodec>
@@ -9,28 +9,48 @@
 #include <QRegExp>
 #include <QTextCursor>
 #include <QProcessEnvironment>
+#include <QTimer>
+#include <QCheckBox>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent),
     bbDownProcess(nullptr),
     urlLineEdit(new QLineEdit(this)),
-    selectPathBtn(new QPushButton(u8"Ñ¡ÔñÏÂÔØÂ·¾¶", this)),
-    pathLabel(new QLabel(u8"Î´Ñ¡ÔñÂ·¾¶", this)),
-    downloadBtn(new QPushButton(u8"ÏÂÔØ", this)),
-    logTextEdit(new QTextEdit(this))
+    selectPathBtn(new QPushButton(u8"é€‰æ‹©ä¸‹è½½è·¯å¾„", this)),
+    pathLabel(new QLabel(u8"æœªé€‰æ‹©è·¯å¾„", this)),
+    audioOnlyCheckBox(new QCheckBox(u8"ä»…ä¸‹è½½éŸ³é¢‘", this)),
+    downloadBtn(new QPushButton(u8"ä¸‹è½½", this)),
+    logTextEdit(new QTextEdit(this)),
+    progressBar(new QProgressBar(this)),
+    currentProgress(0),
+    progressTimer(new QTimer(this))
 {
     initUI();
-    setWindowTitle(u8"ßÙÁ¨ßÙÁ¨ÊÓÆµÏÂÔØÆ÷ - ÓÉ ×¿×¿ÊÀ½ç ¿ª·¢");
+    setWindowTitle(u8"å“”å“©å“”å“©è§†é¢‘ä¸‹è½½å™¨ - ç”± å“å“ä¸–ç•Œ å¼€å‘");
     setFixedSize(700, 500);
     setStyleSheet("QMainWindow{background-color:#f5f5f5;}QLabel{font-size:12px;color:#333;min-width:80px;}QLineEdit{font-size:12px;padding:6px;border:1px solid #ddd;border-radius:4px;background-color:white;}QPushButton{font-size:12px;padding:8px 16px;background-color:#00a1d6;color:white;border:none;border-radius:4px;}QPushButton:hover{background-color:#008ec5;}QPushButton:disabled{background-color:#cccccc;color:#666666;}QTextEdit{font-size:11px;font-family:Consolas,Monaco,monospace;border:1px solid #ddd;border-radius:4px;background-color:#fafafa;}");
 
     logTextEdit->setReadOnly(true);
     downloadBtn->setEnabled(false);
     
-    // Ìí¼Ó¿ª·¢ÕßÊðÃû
+    // æ·»åŠ å¼€å‘è€…ç½²å
     logTextEdit->append(u8"========================================");
-    logTextEdit->append(u8"BÕ¾ÊÓÆµÏÂÔØ¹¤¾ß - ÓÉ ×¿×¿ÊÀ½ç ¿ª·¢");
+    logTextEdit->append(u8"Bç«™è§†é¢‘ä¸‹è½½å·¥å…· - ç”± å“å“ä¸–ç•Œ å¼€å‘");
     logTextEdit->append(u8"========================================");
+
+    // åˆå§‹åŒ–è¿›åº¦æ¡
+    progressBar->setValue(0);
+    progressBar->setTextVisible(true);
+    progressBar->setFormat(u8"ç­‰å¾…ä¸‹è½½...");
+
+    // è¿žæŽ¥å®šæ—¶å™¨æ¨¡æ‹Ÿè¿›åº¦
+    connect(progressTimer, &QTimer::timeout, [this]() {
+        if (currentProgress < 95) {
+            currentProgress += 5;
+            progressBar->setValue(currentProgress);
+            progressBar->setFormat(QString(u8"æ­£åœ¨ä¸‹è½½: %1%").arg(currentProgress));
+        }
+    });
 
     connect(selectPathBtn, &QPushButton::clicked, this, &MainWindow::on_selectPathBtn_clicked);
     connect(downloadBtn, &QPushButton::clicked, this, &MainWindow::on_downloadBtn_clicked);
@@ -52,15 +72,15 @@ void MainWindow::initUI()
     setCentralWidget(centralWidget);
 
     QHBoxLayout* urlLayout = new QHBoxLayout();
-    QLabel* urlLabel = new QLabel(u8"ÊÓÆµÁ´½Ó:", 0);
+    QLabel* urlLabel = new QLabel(u8"è§†é¢‘é“¾æŽ¥:", 0);
     urlLabel->setMinimumWidth(80);
     urlLayout->addWidget(urlLabel);
-    urlLineEdit->setPlaceholderText(u8"ÊäÈëßÙÁ¨ßÙÁ¨ÊÓÆµÁ´½Ó");
+    urlLineEdit->setPlaceholderText(u8"è¾“å…¥å“”å“©å“”å“©è§†é¢‘é“¾æŽ¥");
     urlLayout->addWidget(urlLineEdit);
     mainLayout->addLayout(urlLayout);
 
     QHBoxLayout* pathLayout = new QHBoxLayout();
-    QLabel* pathTitleLabel = new QLabel(u8"ÏÂÔØÂ·¾¶:", 0);
+    QLabel* pathTitleLabel = new QLabel(u8"ä¸‹è½½è·¯å¾„:", 0);
     pathTitleLabel->setMinimumWidth(80);
     pathLayout->addWidget(pathTitleLabel);
     pathLabel->setMinimumWidth(200);
@@ -71,6 +91,19 @@ void MainWindow::initUI()
     pathLayout->addWidget(selectPathBtn);
     mainLayout->addLayout(pathLayout);
 
+    // æ·»åŠ éŸ³é¢‘é€‰é¡¹å¤é€‰æ¡†
+    QHBoxLayout* audioLayout = new QHBoxLayout();
+    audioLayout->addWidget(new QLabel(u8"ä¸‹è½½é€‰é¡¹:", 0));
+    audioOnlyCheckBox->setStyleSheet("QCheckBox{font-size:12px;spacing:5px;}");
+    audioLayout->addWidget(audioOnlyCheckBox);
+    audioLayout->addStretch();
+    mainLayout->addLayout(audioLayout);
+
+    // æ·»åŠ è¿›åº¦æ¡
+    progressBar->setMinimumHeight(25);
+    progressBar->setStyleSheet("QProgressBar{border:1px solid #ddd;border-radius:4px;background-color:#f0f0f0;text-align:center;}QProgressBar::chunk{background-color:#00a1d6;border-radius:3px;}");
+    mainLayout->addWidget(progressBar);
+
     QHBoxLayout* btnLayout = new QHBoxLayout();
     btnLayout->addStretch();
     downloadBtn->setMinimumWidth(120);
@@ -79,7 +112,7 @@ void MainWindow::initUI()
     btnLayout->addStretch();
     mainLayout->addLayout(btnLayout);
 
-    QLabel* logLabel = new QLabel(u8"ÏÂÔØÈÕÖ¾:", 0);
+    QLabel* logLabel = new QLabel(u8"ä¸‹è½½æ—¥å¿—:", 0);
     mainLayout->addWidget(logLabel);
     logTextEdit->setMinimumHeight(200);
     mainLayout->addWidget(logTextEdit);
@@ -90,11 +123,11 @@ void MainWindow::initUI()
 
 void MainWindow::on_selectPathBtn_clicked()
 {
-    downloadPath = QFileDialog::getExistingDirectory(0, u8"Ñ¡ÔñÏÂÔØÄ¿Â¼", QDir::homePath(), QFileDialog::ShowDirsOnly);
+    downloadPath = QFileDialog::getExistingDirectory(0, u8"é€‰æ‹©ä¸‹è½½ç›®å½•", QDir::homePath(), QFileDialog::ShowDirsOnly);
     if (!downloadPath.isEmpty()) {
         pathLabel->setText(downloadPath);
         downloadBtn->setEnabled(true);
-        logTextEdit->append(u8"Ñ¡ÔñÂ·¾¶: " + downloadPath);
+        logTextEdit->append(u8"é€‰æ‹©è·¯å¾„: " + downloadPath);
     }
 }
 
@@ -102,7 +135,7 @@ void MainWindow::on_downloadBtn_clicked()
 {
     QString videoUrl = urlLineEdit->text().trimmed();
     if (videoUrl.isEmpty()) {
-        QMessageBox::warning(0, "¾¯¸æ", "ÇëÊäÈëÊÓÆµÁ´½Ó");
+        QMessageBox::warning(0, "è­¦å‘Š", "è¯·è¾“å…¥è§†é¢‘é“¾æŽ¥");
         return;
     }
 
@@ -110,12 +143,12 @@ void MainWindow::on_downloadBtn_clicked()
     videoUrl = videoUrl.remove(QRegExp("/$"));
 
     if (!videoUrl.contains("bilibili.com/video/") && !videoUrl.contains("bv") && !videoUrl.contains("BV")) {
-        QMessageBox::warning(0, "¾¯¸æ", "ÇëÊäÈëºÏ·¨µÄÊÓÆµÁ´½Ó");
+        QMessageBox::warning(0, "è­¦å‘Š", "è¯·è¾“å…¥åˆæ³•çš„è§†é¢‘é“¾æŽ¥");
         return;
     }
 
     if (bbDownProcess && bbDownProcess->state() == QProcess::Running) {
-        QMessageBox::information(0, "ÐÅÏ¢", "ÕýÔÚÏÂÔØÖÐ£¬ÇëÉÔºó...");
+        QMessageBox::information(0, "ä¿¡æ¯", "æ­£åœ¨ä¸‹è½½ä¸­ï¼Œè¯·ç¨åŽ...");
         return;
     }
 
@@ -128,31 +161,76 @@ void MainWindow::on_downloadBtn_clicked()
 
     QString quotedUrl = QString("\"%1\"").arg(videoUrl);
     QString quotedPath = QString("\"%1\"").arg(downloadPath);
-    QString bbDownCmd = QString("BBDown %1 --work-dir %2").arg(quotedUrl).arg(quotedPath);
+    
+    // æ ¹æ®å¤é€‰æ¡†çŠ¶æ€æ·»åŠ éŸ³é¢‘ä¸‹è½½å‚æ•°
+    QString bbDownCmd;
+    if (audioOnlyCheckBox->isChecked()) {
+        bbDownCmd = QString("BBDown %1 --work-dir %2 --audio-only").arg(quotedUrl).arg(quotedPath);
+        logTextEdit->append(u8"æ¨¡å¼: ä»…ä¸‹è½½éŸ³é¢‘");
+    } else {
+        bbDownCmd = QString("BBDown %1 --work-dir %2").arg(quotedUrl).arg(quotedPath);
+        logTextEdit->append(u8"æ¨¡å¼: ä¸‹è½½è§†é¢‘+éŸ³é¢‘");
+    }
+    
     QString cmd = QString("cmd /c %1").arg(bbDownCmd);
 
-    logTextEdit->append(u8"¿ªÊ¼ÏÂÔØ...");
-    logTextEdit->append(u8"ÃüÁî: " + bbDownCmd);
+    logTextEdit->append(u8"å¼€å§‹ä¸‹è½½...");
+    logTextEdit->append(u8"å‘½ä»¤: " + bbDownCmd);
 
     bbDownProcess->start(cmd);
+
+    // å¼€å§‹æ¨¡æ‹Ÿè¿›åº¦ï¼ˆæ¯2ç§’æ›´æ–°ä¸€æ¬¡ï¼‰
+    progressTimer->start(2000);
 
     downloadBtn->setEnabled(false);
     selectPathBtn->setEnabled(false);
     urlLineEdit->setEnabled(false);
+    audioOnlyCheckBox->setEnabled(false);
 }
 
 void MainWindow::readProcessOutput()
 {
     if (!bbDownProcess) return;
 
+    // åŒæ—¶è¯»å–æ ‡å‡†è¾“å‡ºå’Œæ ‡å‡†é”™è¯¯ï¼Œè¿›åº¦æ¡ä¿¡æ¯å¯èƒ½åœ¨stderrä¸­
     QByteArray output = bbDownProcess->readAllStandardOutput();
+    QByteArray errorOutput = bbDownProcess->readAllStandardError();
+    
+    QString allOutput;
     if (!output.isEmpty()) {
-        logTextEdit->append(QTextCodec::codecForLocale()->toUnicode(output));
+        allOutput += QTextCodec::codecForLocale()->toUnicode(output);
     }
-
-    QByteArray error = bbDownProcess->readAllStandardError();
-    if (!error.isEmpty()) {
-        logTextEdit->append("[Error] " + QTextCodec::codecForLocale()->toUnicode(error));
+    if (!errorOutput.isEmpty()) {
+        allOutput += QTextCodec::codecForLocale()->toUnicode(errorOutput);
+    }
+    
+    if (!allOutput.isEmpty()) {
+        logTextEdit->append(allOutput);
+        
+        // è§£æžè¿›åº¦ï¼ˆå¦‚æžœæœ‰ï¼‰
+        if (bbDownProcess->state() == QProcess::Running) {
+            // å°è¯•è§£æžè¿›åº¦ç™¾åˆ†æ¯”
+            QRegExp progressRegex("(\\d+)%");
+            int pos = 0;
+            while ((pos = progressRegex.indexIn(allOutput, pos)) != -1) {
+                QString percentStr = progressRegex.cap(1);
+                bool ok;
+                int percent = percentStr.toInt(&ok);
+                if (ok && percent >= 0 && percent <= 100 && percent > currentProgress) {
+                    currentProgress = percent;
+                    progressBar->setValue(percent);
+                    progressBar->setFormat(QString(u8"æ­£åœ¨ä¸‹è½½: %1%").arg(percent));
+                    break;
+                }
+                pos += progressRegex.matchedLength();
+            }
+            
+            // å¦‚æžœæ²¡æœ‰æ‰¾åˆ°ç™¾åˆ†æ¯”ï¼Œä½†çœ‹åˆ°ä¸‹è½½ç›¸å…³çš„å…³é”®è¯ï¼Œè®¾ç½®ä¸º"æ­£åœ¨ä¸‹è½½"çŠ¶æ€
+            if (currentProgress == 0 && 
+                (allOutput.contains("å¼€å§‹ä¸‹è½½") || allOutput.contains("ä¸‹è½½P1è§†é¢‘") || allOutput.contains("ä¸‹è½½P1éŸ³é¢‘"))) {
+                progressBar->setFormat(u8"æ­£åœ¨ä¸‹è½½...");
+            }
+        }
     }
 
     QTextCursor cursor = logTextEdit->textCursor();
@@ -164,20 +242,27 @@ void MainWindow::processFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     Q_UNUSED(exitStatus);
 
+    // åœæ­¢æ¨¡æ‹Ÿè¿›åº¦å®šæ—¶å™¨
+    progressTimer->stop();
+
     if (exitCode == 0) {
+        progressBar->setValue(100);
+        progressBar->setFormat(u8"ä¸‹è½½å®Œæˆ: 100%");
         logTextEdit->append("=====================");
-        logTextEdit->append(u8"ÏÂÔØÍê³É£¡ÎÄ¼þ±£´æÖÁ£º" + downloadPath);
+        logTextEdit->append(u8"ä¸‹è½½å®Œæˆï¼æ–‡ä»¶ä¿å­˜è‡³ï¼š" + downloadPath);
         logTextEdit->append("=====================");
     }
     else {
+        progressBar->setFormat(u8"ä¸‹è½½å¤±è´¥");
         logTextEdit->append("=====================");
-        logTextEdit->append(u8"ÏÂÔØÊ§°Ü£¡´íÎóÂë£º" + QString::number(exitCode));
+        logTextEdit->append(u8"ä¸‹è½½å¤±è´¥ï¼é”™è¯¯ç ï¼š" + QString::number(exitCode));
         logTextEdit->append("=====================");
     }
 
     downloadBtn->setEnabled(true);
     selectPathBtn->setEnabled(true);
     urlLineEdit->setEnabled(true);
+    audioOnlyCheckBox->setEnabled(true);
 
     bbDownProcess->deleteLater();
     bbDownProcess = nullptr;
