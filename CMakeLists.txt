@@ -45,10 +45,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 if (WIN32)
     # 强制使用UTF-8编码
     add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-    # 保留控制台窗口（方便查看BBDown输出），纯GUI可改为ON
+    # 设置为Windows GUI程序，消除运行时黑色终端弹窗
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        WIN32_EXECUTABLE OFF
-        LINK_FLAGS "/SUBSYSTEM:CONSOLE"
+        WIN32_EXECUTABLE ON
+        LINK_FLAGS "/SUBSYSTEM:WINDOWS"
     )
     
     # 自动复制BBDown.exe到输出目录（需将BBDown.exe放在项目根目录）
