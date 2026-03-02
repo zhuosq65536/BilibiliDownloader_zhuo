@@ -1,17 +1,16 @@
 # 1. 忽略单个文件（写完整路径）
-aqdialog/gauge_rename_dialog.cpp  # 忽略aqdialog目录下的该文件
-aqtool/config.ini                 # 忽略aqtool目录下的config.ini
+
 
 # 2. 忽略某类文件（通配符）
-*.dll                             # 忽略所有.dll文件
-*.iss                           # 忽略所有.dll文件
-*.lib                             # 忽略所有.lib文件
-build/                            # 忽略build文件夹下所有内容
-aqdialog/CMakeCache.txt           # 忽略aqdialog下的CMake缓存文件
+*.dll
+*.iss
+*.lib
+*.exe
 
 # 3. 忽略文件夹（末尾加/）
-out/                              # 忽略out文件夹
-cmake-build-debug/                # 忽略CLion的构建目录
+.vs/
+installer/
+out/
+
 
 # 4. 例外规则（!开头，优先级更高）
-!aqdialog/gauge_base_dialog.cpp   # 即使aqdialog/*被忽略，该文件仍追踪
